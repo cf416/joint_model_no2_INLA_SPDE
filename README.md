@@ -6,7 +6,7 @@ the paper *A Joint Bayesian Space-Time Model to Integrate Spatially
 Misaligned Air Pollution Data in R-INLA* (Forlani C., Bhatt S.,
 Cameletti M., Krainski E., Blangiardo M.), under review.
 
-We are trying to improve the predictions of NO**<sub>2</sub>
+We are trying to improve the predictions of NO<sub>2</sub>
 concentration integrating data from two deterministic models called AQUM
 and PCM. The observations from the monitoring stations represent our
 response variable.
@@ -26,7 +26,7 @@ The workspace contains the following objects:
     days
 -   `pcm`: annual output of the PCM model for 44117 locations and 5
     years
--   `final_dataset`: daily observations of NO**<sub>2</sub>
+-   `final_dataset`: daily observations of NO<sub>2</sub>
     concentration for 126 monitors and 1826 days with associated site
     type
 -   `boundary`: boundary of the study area
@@ -37,7 +37,7 @@ The workspace contains the following objects:
 -   `coordinates.aqum`: coordinates of the 495 AQUM locations
 -   `coordinates.pcm`: coordinates of the 44117 PCM locations
 -   `monitors`: coordinates of the 126 monitoring stations
--   `monitors_val`: list of the 10 sets of monitors used for validation
+-   `monitors_val`: list of the 6 sets of monitors used for validation
 -   `pred.grid`: locations where we want to make predictions and
     corresponding site type
 -   `pred.grid.aqum`: values of AQUM interpolated at the prediction grid

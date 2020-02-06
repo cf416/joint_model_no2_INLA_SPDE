@@ -1,0 +1,11 @@
+*~
+.project
+.settings
+.Rhistory
+.RData
+.Rproj*
+.Rproj.user
+.tex
+.log
+.Rmd
+03_comparison.R

@@ -2,6 +2,8 @@ print("#########################################################################
 print(paste0("Output_",formula_id,"_",pol,"_",data_id))
 print("####################################################################################")
 
+##--- If results folder and workspace are not found, create folder, set as working directory, and run the code
+
 if (!file.exists(file.path(getwd(),paste0("Output_",formula_id,"_",pol,"_",data_id)))){
   dir.create(file.path(getwd(),paste0("Output_",formula_id,"_",pol,"_",data_id)))
 } 
@@ -582,15 +584,9 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
     
   }
   
-  
+  save.image("workspace_results.RData")
   
 }
-
-
-
-
-
-save.image("workspace_results.RData")
 
 
 q(save="no")

@@ -108,8 +108,6 @@ if(formula_id<=6){
   print("#--- Correlation observed vs expected (on log scale) ---#")
   ######################################################
   
-  print("#--- validation dataset  ---#")
-  
   png('correlation_val.png', width = 10, height = 6, unit="in", res=600)
   par(mfrow=c(1,2))
   plot(y=validation$data[,paste0(pol,"_log")],x=validation$data$fitted.mean,asp=1,xlab='Expected values', ylab='Observed values',
@@ -212,7 +210,7 @@ if(formula_id<=6){
   
   
   ######################################################
-  print("#--- Extracting posterior means  ---#")
+  print("#--- Extracting posterior means of latent fields ---#")
   ######################################################
   
   print(names(mod$summary.random))
@@ -297,33 +295,20 @@ if(formula_id<=6){
     spat.field = subset(spat.field, over(spat.field, shape)$objectid==1)
     spat.field = as.data.frame(spat.field)
     
-    
-    pcm_lat_log = ggplot(spat.field) +
-      geom_raster(aes(x, y, fill = mean.log)) +
-      scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-      ggtitle(paste0(names(mod$marginals.random)[i]," - posterior mean")) +
-      geom_path(data = fortify(shape), aes(group = group, x = long, y = lat)) +
-      geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5) +
-      theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-            axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-            legend.key.height = unit(1.5,"cm"), 
-            legend.text = element_text(size=7, vjust=-0.5)) +
-      labs(x="Easting",y="Northing")
-    
-    pcm_lat_sd_log = ggplot(spat.field) +
-      geom_raster(aes(x, y, fill = sd.log)) +
-      #gg(mesh.pcm) +
-      scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-      ggtitle(paste0(names(mod$marginals.random)[i]," - posterior SD")) +
-      geom_path(data = fortify(shape), aes(group = group, x = long, y = lat)) +
-      geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5) +
-      theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-            axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-            legend.key.height = unit(1.5,"cm"), 
-            legend.text = element_text(size=7, vjust=-0.5)) +
-      labs(x="Easting",y="Northing")
-    
-    ggsave(paste0(names(mod$marginals.random)[i],'.png'), plot=pcm_lat_log, width = 8, height = 8, units="in", dpi=600)
+    ggsave(paste0(names(mod$marginals.random)[i],'.png'), 
+           plot = ggplot(spat.field) +
+             geom_raster(aes(x, y, fill = mean.log)) +
+             #gg(mesh.pcm) +  # this requires package inlabru and plots mesh over the mean.log layer
+             scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
+             ggtitle(paste0(names(mod$marginals.random)[i]," - posterior mean")) +
+             geom_path(data = fortify(shape), aes(group = group, x = long, y = lat)) +
+             geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5) +
+             theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+                   axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+                   legend.key.height = unit(1.5,"cm"), 
+                   legend.text = element_text(size=7, vjust=-0.5)) +
+             labs(x="Easting",y="Northing"), 
+      width = 8, height = 8, units="in", dpi=600)
     
   }
 
@@ -335,7 +320,6 @@ if(formula_id<=6){
   n.pred=50
   pred.perf = list()
   predictions= list()
-  n.cores = 1 #detectCores() - 1
 
   # extract sample.size values from each marginal of the fitted values
   # posterior.samples.all = inla.posterior.sample(n = sample.size.all, result=mod, intern = FALSE, use.improved.mean = TRUE, add.names = TRUE, seed = 0L)
@@ -391,19 +375,18 @@ if(formula_id<=6){
   
   saveRDS(fields, "posterior_samples_fields.rds")
 
-  
-  # date=seq.Date(as.Date("2007-01-01"), as.Date("2011-12-31"), "days")
-
+  # Create folder to save daily predictions
   if (!file.exists(file.path(getwd(), "predictions_by_day"))){
     dir.create(file.path(getwd(), "predictions_by_day"))
   }
 
-  date = data.frame(date=unique(aqum$date),
+  date = data.frame(date=seq.Date(as.Date("2007-01-01"), as.Date("2011-12-31"), "days"),
                     date.idx.no2=c(1:n_days),
                     year=as.numeric(substr(unique(aqum$date),1,4)),
                     month=as.numeric(substr(unique(aqum$date),6,7)),
                     day=as.numeric(substr(unique(aqum$date),9,10)))
 
+  # This can be edited to run in parallel with mclapply() if machine supports multi-core 
   lapply(1:n.days, FUN=compute.daily.predictions)
 
 
@@ -437,19 +420,15 @@ if(formula_id<=6){
 
   print(head(monthly.mean))
   print(head(annual.mean))
-  saveRDS(monthly.mean, "../pred_mean_monthly.rds")
-  saveRDS(annual.mean, "../pred_mean_annual.rds")
-
-  print("Saved annual and monthly average of predictions")
 
   setwd("..")
+  saveRDS(monthly.mean, "pred_mean_monthly.rds")
+  saveRDS(annual.mean, "pred_mean_annual.rds")
+  print("Saved annual and monthly average of predictions")
   
   ###############################################################################
   print("#---  plot monthly and annual means  ---#")
   ###############################################################################
-  
-  monthly.mean = readRDS("pred_mean_monthly.rds")
-  annual.mean=readRDS("pred_mean_annual.rds")
   
   ##--- reshape to long format
   
@@ -461,38 +440,39 @@ if(formula_id<=6){
   monthly.mean.long$yearmonth = as.factor(substr(as.character(monthly.mean.long$month),5,11))
   monthly.mean.long$month = as.factor(substr(as.character(monthly.mean.long$month),10,11))
   
-  
-  annual.mean.long.plot = ggplot(annual.mean.long) +
-    geom_raster(aes(x=easting,y=northing, fill = no2)) +
-    facet_wrap("year",ncol=3) +
-    scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-    ggtitle(expression(paste("Average ",log(NO[2])," predictions by year"))) +
-    geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
-    geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
-    theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-          axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-          legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
-          legend.text = element_text(size=7, vjust=-0.5)) +
-    labs(x="Easting",y="Northing")
-  ggsave('annual.mean.png', plot=annual.mean.long.plot, width = 9, height = 6, unit="in", dpi=600)
-  
-  
-  monthly.mean.long.plot =  ggplot(monthly.mean.long) + 
-    geom_raster(aes(x=easting,y=northing, fill = no2))+
-    facet_wrap("yearmonth", ncol=12) +
-    scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-    ggtitle(expression(paste("Average ",log(NO[2])," predictions by year and month"))) +
-    geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
-    geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
-    theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-          axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-          legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
-          legend.text = element_text(size=7, vjust=-0.5)) +
-    labs(x="Easting",y="Northing")
-  ggsave('monthly.mean.png', plot=monthly.mean.long.plot, width = 15, height = 10, unit="in", dpi=600)
+  ggsave('annual.mean.png', 
+         plot=ggplot(annual.mean.long) +
+           geom_raster(aes(x=easting,y=northing, fill = no2)) +
+           facet_wrap("year",ncol=3) +
+           scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
+           ggtitle(expression(paste("Average ",log(NO[2])," predictions by year"))) +
+           geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
+           geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
+           theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+                 axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+                 legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
+                 legend.text = element_text(size=7, vjust=-0.5)) +
+           labs(x="Easting",y="Northing"), 
+         width = 9, height = 6, unit="in", dpi=600)
   
   
- ##---  predictions for days of pollution events
+  ggsave('monthly.mean.png', 
+         plot=ggplot(monthly.mean.long) + 
+           geom_raster(aes(x=easting,y=northing, fill = no2))+
+           facet_wrap("yearmonth", ncol=12) +
+           scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
+           ggtitle(expression(paste("Average ",log(NO[2])," predictions by year and month"))) +
+           geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
+           geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
+           theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+                 axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+                 legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
+                 legend.text = element_text(size=7, vjust=-0.5)) +
+           labs(x="Easting",y="Northing"), 
+         width = 15, height = 10, unit="in", dpi=600)
+  
+  
+  ##---  predictions for days of pollution events
   
   pred_2007_12_11 = readRDS("predictions_by_day/predictions_2007-12-11.rds")
   pred_2007_12_19 = readRDS("predictions_by_day/predictions_2007-12-19.rds")
@@ -503,7 +483,7 @@ if(formula_id<=6){
   
   pred_2007_06_24 = readRDS("predictions_by_day/predictions_2007-06-24.rds")
   pred_2008_06_22 = readRDS("predictions_by_day/predictions_2008-06-22.rds")
-  pred_2009_06_21 = readRDS("predictions_by_day/predictions_2009-06-21.rds") #06/21
+  pred_2009_06_21 = readRDS("predictions_by_day/predictions_2009-06-21.rds")
   pred_2010_06_20 = readRDS("predictions_by_day/predictions_2010-06-20.rds")
   
   pred_events = rbind(cbind(mean = rowMeans(pred_2007_12_11[,-c(1:3)], na.rm = T), day = "2007-12-11", pred.grid),

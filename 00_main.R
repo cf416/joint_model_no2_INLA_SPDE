@@ -15,13 +15,15 @@ library(rgeos)
 library(RColorBrewer)
 library(gdata)
 library(viridis)
-library(spAir)
+library(reshape2)
+library(spAir) # this can be downloaded from http://www.soton.ac.uk/~sks/pollution_estimates/ 
 
 
 ############################################################################
 ########                    useful functions                       #########
 ############################################################################
 
+##--- Predictive capability measures
 
 MSE <- function(z, zhat) {
   z <- as.matrix(z)
@@ -114,6 +116,8 @@ my.validation = function (z, zhat, lower=NULL, upper=NULL, penalty=NULL, names =
 }
 
 
+##--- Function to extract vector of predictions from inla.posterior.sample object
+
 # this function gets in input rows of sample.fitted, each with the sample.size samples and the observed value in last position,
 # and the vector of varicances of length sample.size;
 # extracts n.pred predictions for each sample generating vector of n.pred x sample.size elements;
@@ -137,6 +141,9 @@ extract.predicted = function(sample, variance){
   return(predicted)
 }
 
+
+##--- Function to extract indeces of each model component for an inla.posterior.sample
+
 extract.contents = function(sample){
   print(paste0("sample n. ",sample))
   ps=posterior.samples[[sample]]$latent
@@ -152,6 +159,9 @@ extract.contents = function(sample){
   
   return(mod.comp)
 }
+
+
+##--- Function to extract daily predictions given the day index and saves them in a .rds file
 
 compute.daily.predictions = function(day){
   print(paste0("Calculating predictions for day ",day))
@@ -205,10 +215,9 @@ compute.daily.predictions = function(day){
 ########                     data preparation                      #########
 ############################################################################
 
-
 pol = "no2"
 
-load("workspace_data.RData")
+load("workspace_data.RData") # the data workspace can be requested to the authors
 
 valid = final_dataset[final_dataset$code %in% monitors_val_cheat[[data_id]] , ]
 estim = final_dataset[!(final_dataset$code %in% monitors_val_cheat[[data_id]]) , ]
@@ -312,10 +321,13 @@ formulas[[9]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + a
 ############################################################################
 
 ##--- run models and extract results
+# NB. this chunk can be modified to run the models for each dataset and formula in parallel on a server.
+# Note INLA models require at least 120Gb RAM and a couple of days to run 
 for(data_id in 1:length(monitors_val)){
   for(formula_id in 1:length(formulas)){
     source("01_models.R")
     source("02_results.R")
   }
 }
+
 

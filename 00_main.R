@@ -300,17 +300,17 @@ formulas[[6]] = as.formula(paste0("y ~ -1 + intercept + stURB.",pol," + stRKS.",
                                   f(psi.field, model=spde, extraconstr = list(A=matrix(1,ncol=mesh$n,nrow=1), e=matrix(0,ncol=1))) +
                                   f(date.idx.",pol,", model='ar1', hyper=ar1.time.prior, replicate = sitetype.idx, constr=TRUE, rankdef = 1)"))
 
-# Model from Mukhopadhyay,2017
+# Model from Mukhopadhyay and Sahu, 2017
 # aqum only 
 # non stationary 
 formulas[[7]] = as.formula(paste0(pol," ~ aqum_log_",pol," + aqum_log_URB + stURB.",pol," + aqum_log_RKS + stRKS.",pol))
 
-# Model from Mukhopadhyay,2017
+# Model from Mukhopadhyay and Sahu, 2017
 # aqum + pcm
 # non stationary
 formulas[[8]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + aqum_log_URB + pcm_log_URB + stURB.",pol," + aqum_log_RKS + pcm_log_RKS + stRKS.",pol))
 
-# Model from Mukhopadhyay,2017
+# Model from Mukhopadhyay and Sahu, 2017
 # aqum + pcm
 # stationary
 formulas[[9]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + aqum_log_URB + pcm_log_URB + stURB.",pol," + aqum_log_RKS + pcm_log_RKS + stRKS.",pol))
@@ -325,6 +325,10 @@ formulas[[9]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + a
 # Note INLA models require at least 120Gb RAM and a couple of days to run 
 for(data_id in 1:length(monitors_val)){
   for(formula_id in 1:length(formulas)){
+    if (!file.exists(file.path(getwd(), paste0("Output_",formula_id,"_",data_id)))){
+      dir.create(file.path(getwd(), paste0("Output_",formula_id,"_",data_id)))
+    }
+    setwd(paste0("Output_",formula_id,"_",data_id))
     source("01_models.R")
     source("02_results.R")
   }

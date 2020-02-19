@@ -98,8 +98,7 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
                control.inla = list(strategy='gaussian',int.strategy='eb'),
                verbose=TRUE)
-    
-    # saveRDS(mod, "mod_",formula_id,".rds")  
+
   }
   
   
@@ -146,12 +145,10 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                family=c("gaussian","gaussian"),
                data=inla.stack.data(stack),
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
-               # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
                control.inla = list(strategy='gaussian',int.strategy='eb'),
                verbose=TRUE)
-    
-    # saveRDS(mod, "mod_",formula_id,".rds")  
+ 
   }
   
   
@@ -207,24 +204,10 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                family=c("gaussian","gaussian","gaussian"),
                data=inla.stack.data(stack),
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
-               # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
-               # control.mode = list(theta = c(
-               #   log(1 / sd(pcm$no2_log, na.rm=T)^2), # theta[0] = [Log precision for the Gaussian observations]
-               #   log(1 / sd(aqum$no2_log, na.rm=T)^2), # theta[1] = [Log precision for the Gaussian observations[2]]
-               #   log(1 / sd(estim$no2_log, na.rm=T)^2), # theta[2] = [Log precision for the Gaussian observations[3]]
-               #   log(1 / 0.1), # theta[3] = [Log precision for z2]
-               #   log(range0), # theta[4] = [log(Range) for z1]
-               #   log(1 / 1000), # theta[5] = [log(Stdev) for z1]
-               #   log(1 / 0.1), # theta[6] = [Log precision for date.idx.no2]
-               #   inla.models()$latent$ar1$hyper$theta2$to.theta(0.3), # theta[7] = [Rho_intern for date.idx.no2]
-               #   1, # theta[8] = [Beta_intern for z2.copy]
-               #   1), # theta[9] = [Beta_intern for z1.copy]
-               #   restart = TRUE),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
                control.inla = list(strategy='gaussian',int.strategy='eb'),
                verbose=TRUE)
-    
-    # saveRDS(mod, "mod_",formula_id,".rds")  
+ 
   }
   
   if(formula_id==4){
@@ -271,12 +254,10 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                family=c("gaussian","gaussian","gaussian"),
                data=inla.stack.data(stack),
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
-               # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
                control.inla = list(strategy='gaussian',int.strategy='eb'),
                verbose=TRUE)
     
-    # saveRDS(mod, "mod_",formula_id,".rds")  
   }
   
   
@@ -320,8 +301,6 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
                control.inla = list(strategy='gaussian',int.strategy='eb'),
                verbose=TRUE)
-    
-    # saveRDS(mod, "mod_",formula_id,".rds")
     
   }
   
@@ -453,13 +432,11 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                control.inla = list(strategy='gaussian',int.strategy='eb'),
                verbose=TRUE)
     
-    # saveRDS(mod, "mod_",formula_id,".rds")
-    
   }
   
   
   ############################################################################
-  ########                       SUJIT'S MODEL                       #########
+  ########            Model from Mukhopadhyay and Sahu, 2017         #########
   ############################################################################
   
   # aqum only

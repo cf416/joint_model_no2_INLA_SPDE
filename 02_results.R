@@ -5,7 +5,10 @@ load("workspace_results.RData")
 set.seed(123)
 
 wd = getwd()
-
+if (!file.exists(file.path(getwd(), "results"))){
+  dir.create(file.path(getwd(), "results"))
+}
+setwd("results")
 
 print("#############################################################################################")
 print(paste0("Extracting results for model ",formula_id, ", dataset ",data_id))
@@ -642,5 +645,5 @@ if(formula_id<=6){
 
 }
 
-setwd("..")
+setwd(wd)
 q(save = "no")

@@ -15,15 +15,14 @@ library(rgeos)
 library(RColorBrewer)
 library(gdata)
 library(viridis)
-library(reshape2)
-library(spAir) # this can be downloaded from http://www.soton.ac.uk/~sks/pollution_estimates/ 
+library(spTimer)
+library(spAir) # download from http://www.soton.ac.uk/~sks/pollution_estimates/ 
 
 
 ############################################################################
 ########                    useful functions                       #########
 ############################################################################
 
-##--- Predictive capability measures
 
 MSE <- function(z, zhat) {
   z <- as.matrix(z)
@@ -116,8 +115,6 @@ my.validation = function (z, zhat, lower=NULL, upper=NULL, penalty=NULL, names =
 }
 
 
-##--- Function to extract vector of predictions from inla.posterior.sample object
-
 # this function gets in input rows of sample.fitted, each with the sample.size samples and the observed value in last position,
 # and the vector of varicances of length sample.size;
 # extracts n.pred predictions for each sample generating vector of n.pred x sample.size elements;
@@ -141,9 +138,6 @@ extract.predicted = function(sample, variance){
   return(predicted)
 }
 
-
-##--- Function to extract indeces of each model component for an inla.posterior.sample
-
 extract.contents = function(sample){
   print(paste0("sample n. ",sample))
   ps=posterior.samples[[sample]]$latent
@@ -159,9 +153,6 @@ extract.contents = function(sample){
   
   return(mod.comp)
 }
-
-
-##--- Function to extract daily predictions given the day index and saves them in a .rds file
 
 compute.daily.predictions = function(day){
   print(paste0("Calculating predictions for day ",day))
@@ -215,17 +206,14 @@ compute.daily.predictions = function(day){
 ########                     data preparation                      #########
 ############################################################################
 
+
 pol = "no2"
 
-load("workspace_data.RData") # the data workspace can be requested to the authors
+load("workspace_data.RData")
 
-valid = final_dataset[final_dataset$code %in% monitors_val_cheat[[data_id]] , ]
-estim = final_dataset[!(final_dataset$code %in% monitors_val_cheat[[data_id]]) , ]
-
-n_monitors=nrow(coordinates.y)
-n_data=nrow(estim)+nrow(valid)
-n_days=n_data/n_monitors
-
+final_dataset$site.type = factor(as.character(final_dataset$site.type), ordered = T, levels = c("RUR","URB","RKS"))
+final_dataset$site.type.n = as.numeric(final_dataset$site.type)
+final_dataset$sitetype.idx = as.numeric(final_dataset$site.type)
 
 ##--- Visualise data
 
@@ -300,17 +288,17 @@ formulas[[6]] = as.formula(paste0("y ~ -1 + intercept + stURB.",pol," + stRKS.",
                                   f(psi.field, model=spde, extraconstr = list(A=matrix(1,ncol=mesh$n,nrow=1), e=matrix(0,ncol=1))) +
                                   f(date.idx.",pol,", model='ar1', hyper=ar1.time.prior, replicate = sitetype.idx, constr=TRUE, rankdef = 1)"))
 
-# Model from Mukhopadhyay and Sahu, 2017
+# Model from Mukhopadhyay,2017
 # aqum only 
 # non stationary 
 formulas[[7]] = as.formula(paste0(pol," ~ aqum_log_",pol," + aqum_log_URB + stURB.",pol," + aqum_log_RKS + stRKS.",pol))
 
-# Model from Mukhopadhyay and Sahu, 2017
+# Model from Mukhopadhyay,2017
 # aqum + pcm
 # non stationary
 formulas[[8]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + aqum_log_URB + pcm_log_URB + stURB.",pol," + aqum_log_RKS + pcm_log_RKS + stRKS.",pol))
 
-# Model from Mukhopadhyay and Sahu, 2017
+# Model from Mukhopadhyay,2017
 # aqum + pcm
 # stationary
 formulas[[9]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + aqum_log_URB + pcm_log_URB + stURB.",pol," + aqum_log_RKS + pcm_log_RKS + stRKS.",pol))
@@ -321,17 +309,11 @@ formulas[[9]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + a
 ############################################################################
 
 ##--- run models and extract results
-# NB. this chunk can be modified to run the models for each dataset and formula in parallel on a server.
-# Note INLA models require at least 120Gb RAM and a couple of days to run 
+##--- this can be parallelized 
 for(data_id in 1:length(monitors_val)){
   for(formula_id in 1:length(formulas)){
-    if (!file.exists(file.path(getwd(), paste0("Output_",formula_id,"_",data_id)))){
-      dir.create(file.path(getwd(), paste0("Output_",formula_id,"_",data_id)))
-    }
-    setwd(paste0("Output_",formula_id,"_",data_id))
     source("01_models.R")
     source("02_results.R")
   }
 }
-
 

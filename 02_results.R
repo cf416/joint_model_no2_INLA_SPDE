@@ -5,10 +5,7 @@ load("workspace_results.RData")
 set.seed(123)
 
 wd = getwd()
-if (!file.exists(file.path(getwd(), "results"))){
-  dir.create(file.path(getwd(), "results"))
-}
-setwd("results")
+
 
 print("#############################################################################################")
 print(paste0("Extracting results for model ",formula_id, ", dataset ",data_id))
@@ -21,9 +18,7 @@ results_mod=list()
 
 if(formula_id<=6){
   
-  coordinates.estim<-unique(estim[,c("loc.idx","easting","northing")])
-  coordinates.valid<-unique(valid[,c("loc.idx","easting","northing")])
-
+  
   results_mod$mod_size=object.size(mod)
   results_mod$exec_time = mod$cpu.used
   
@@ -111,6 +106,8 @@ if(formula_id<=6){
   print("#--- Correlation observed vs expected (on log scale) ---#")
   ######################################################
   
+  print("#--- validation dataset  ---#")
+  
   png('correlation_val.png', width = 10, height = 6, unit="in", res=600)
   par(mfrow=c(1,2))
   plot(y=validation$data[,paste0(pol,"_log")],x=validation$data$fitted.mean,asp=1,xlab='Expected values', ylab='Observed values',
@@ -124,6 +121,7 @@ if(formula_id<=6){
   
   png('correlation_val_bysite.png', width = 15, height = 15, unit="in", res=600)
   par(mfrow=c(5,5))
+  # take first 25 validation sites (in 3 sets there are 26)
   unique.site = unique(validation$data$code)[1:25] # ifelse(length(unique(validation$data$code))>25, unique(validation$data$code)[1:25], unique(validation$data$code))
   for(site in unique.site){
     index=which(validation$data$code==site)
@@ -169,7 +167,7 @@ if(formula_id<=6){
     plot(z[,i], main=paste0(unique(valid$code)[i]," - ",valid[valid$code==unique(valid$code)[i],"site.type"][1]), ylab="", xlab="", ylim=c(min(z, na.rm = T),max(z,na.rm = T)))
     abline(h=0, col="red")
   }
-  title("Temporal trend of residuals on log scale, by monitor", outer=TRUE,cex.main=2)
+  title("Temporal trend of residuals on log scale, by monitor - fixed scale", outer=TRUE,cex.main=2)
   dev.off()
   
   png('temp_res.png', width = 15, height = 10, unit="in", res=600)
@@ -181,9 +179,9 @@ if(formula_id<=6){
   title("Temporal trend of residuals on log scale, by monitor", outer=TRUE,cex.main=2)
   dev.off()
   
-
+  
   print("variogram")
-
+  
   # #Create a SpatialPointsDataFrame in UTM coordinates
   res=validation$data
   coordinates(res) <- ~easting+northing
@@ -213,7 +211,7 @@ if(formula_id<=6){
   
   
   ######################################################
-  print("#--- Extracting posterior means of latent fields ---#")
+  print("#--- Extracting posterior means  ---#")
   ######################################################
   
   print(names(mod$summary.random))
@@ -274,7 +272,7 @@ if(formula_id<=6){
     dev.off()
   }
   
-
+  
   print("# latent spatial field")
   
   for(i in index.spat.field){
@@ -298,32 +296,47 @@ if(formula_id<=6){
     spat.field = subset(spat.field, over(spat.field, shape)$objectid==1)
     spat.field = as.data.frame(spat.field)
     
-    ggsave(paste0(names(mod$marginals.random)[i],'.png'), 
-           plot = ggplot(spat.field) +
-             geom_raster(aes(x, y, fill = mean.log)) +
-             #gg(mesh.pcm) +  # this requires package inlabru and plots mesh over the mean.log layer
-             scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-             ggtitle(paste0(names(mod$marginals.random)[i]," - posterior mean")) +
-             geom_path(data = fortify(shape), aes(group = group, x = long, y = lat)) +
-             geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5) +
-             theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-                   axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-                   legend.key.height = unit(1.5,"cm"), 
-                   legend.text = element_text(size=7, vjust=-0.5)) +
-             labs(x="Easting",y="Northing"), 
-      width = 8, height = 8, units="in", dpi=600)
+    
+    pcm_lat_log = ggplot(spat.field) +
+      #gg(mesh.pcm) +
+      geom_raster(aes(x, y, fill = mean.log)) +
+      scale_fill_viridis(bquote(paste("log(",.(toupper(pol)),") (",mu,"g/",m^3,")"))) +
+      ggtitle(paste0(names(mod$marginals.random)[i]," - posterior mean")) +
+      geom_path(data = fortify(shape), aes(group = group, x = long, y = lat)) +
+      geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5) +
+      theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+            axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+            legend.key.height = unit(1.5,"cm"), 
+            legend.text = element_text(size=7, vjust=-0.5)) +
+      labs(x="Easting",y="Northing")
+    
+    pcm_lat_sd_log = ggplot(spat.field) +
+      geom_raster(aes(x, y, fill = sd.log)) +
+      #gg(mesh.pcm) +
+      scale_fill_viridis(bquote(paste("log(",.(toupper(pol)),") (",mu,"g/",m^3,")"))) +
+      ggtitle(paste0(names(mod$marginals.random)[i]," - posterior SD")) +
+      geom_path(data = fortify(shape), aes(group = group, x = long, y = lat)) +
+      geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5) +
+      theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+            axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+            legend.key.height = unit(1.5,"cm"), 
+            legend.text = element_text(size=7, vjust=-0.5)) +
+      labs(x="Easting",y="Northing")
+    
+    ggsave(paste0(names(mod$marginals.random)[i],'.png'), plot=pcm_lat_log, width = 8, height = 8, units="in", dpi=600)
     
   }
-
+  
   ######################################################
   print("#--- predictive capability  ---#")
   ######################################################
   
   sample.size=50 
-  n.pred=50
+  n.pred=100
   pred.perf = list()
   predictions= list()
-
+  n.cores = 1 #detectCores() - 1
+  
   # extract sample.size values from each marginal of the fitted values
   # posterior.samples.all = inla.posterior.sample(n = sample.size.all, result=mod, intern = FALSE, use.improved.mean = TRUE, add.names = TRUE, seed = 0L)
   # posterior.samples = posterior.samples.all[1:sample.size]
@@ -331,68 +344,66 @@ if(formula_id<=6){
   print("Posterior samples extracted.")
   saveRDS(posterior.samples, "posterior_samples.rds")
   print("Posterior samples saved")
-
+  
   samples.fitted = unlist(lapply(lapply(posterior.samples,"[[", "latent" ),"[", inla.stack.index(stack,"val.y")$data))
-
+  
   #reshape in order to have a matrix of nrow(valid) x sample.size
   samples.fitted = matrix(samples.fitted, nrow=nrow(valid), byrow = F)
-
+  
   # extract sample.size values from marginal of the likelihood variance
   # (it is always the last of the Gaussian observations, so we extract the position)
   par.index = length(which(substr(rownames(mod$summary.hyperpar),1,26) == "Precision for the Gaussian"))
   samples.var = 1/unlist(lapply(lapply(posterior.samples,"[[", "hyperpar" ),"[", par.index))
   # this is not exactly what we want, in theory we should sample from the transformed posterior marginal
   # rather than inverting the values sampled from the posterior marginal of the precision
-
+  
   samples.fitted = cbind(samples.fitted, obs.value=valid[,paste0(pol,"_log")])
-
+  
   predictive.capability=apply(samples.fitted, MARGIN = 1, FUN=extract.predicted, variance=samples.var)
-
+  
   predictive.capability = as.data.frame(t(predictive.capability))
   predictive.capability = cbind(code=valid$code, date.idx=valid$date.idx, site.type=valid$site.type, predictive.capability)
-
+  
   predictive.capability$CRPS = crps_sample(y=samples.fitted[,(ncol(samples.fitted)-1)], dat=as.matrix(samples.fitted[,1:(ncol(samples.fitted)-1)]))
-
+  
   results_mod$predictive_capability = predictive.capability
-
+  
   results_mod$samples.fitted = samples.fitted
-
+  
   saveRDS(results_mod, "results.rds")
-
-
+  
+  
   ######################################################
   print("#--- extract daily predictions ---#")
   ######################################################
-
+  
   n.samples = 50
   n.days = 1826
   n.locs = nrow(pred.grid)
-
+  
   A_pred =inla.spde.make.A(mesh, loc=cbind(pred.grid$easting, pred.grid$northing))
   
   print(mod$misc$configs$contents)
   contents=as.data.frame(mod$misc$configs$contents)
   contents$end = contents$start + contents$length - 1
-
+  
   fields = lapply(1:n.samples, FUN=extract.contents)
   
   saveRDS(fields, "posterior_samples_fields.rds")
-
-  # Create folder to save daily predictions
+  
   if (!file.exists(file.path(getwd(), "predictions_by_day"))){
     dir.create(file.path(getwd(), "predictions_by_day"))
   }
-
+  
   date = data.frame(date=seq.Date(as.Date("2007-01-01"), as.Date("2011-12-31"), "days"),
                     date.idx.no2=c(1:n_days),
                     year=as.numeric(substr(unique(aqum$date),1,4)),
                     month=as.numeric(substr(unique(aqum$date),6,7)),
                     day=as.numeric(substr(unique(aqum$date),9,10)))
-
-  # This can be edited to run in parallel with mclapply() if machine supports multi-core 
+  
   lapply(1:n.days, FUN=compute.daily.predictions)
-
-
+  
+  
   ###############################################################################
   print("#---  compute monthly and annual means from daily prediction files ---#")
   ###############################################################################
@@ -420,18 +431,22 @@ if(formula_id<=6){
     annual.mean=cbind(annual.mean,pred.mean)
     names(annual.mean)[ncol(annual.mean)]=paste0("no2_",y)
   }
-
+  
   print(head(monthly.mean))
   print(head(annual.mean))
-
-  setwd("..")
-  saveRDS(monthly.mean, "pred_mean_monthly.rds")
-  saveRDS(annual.mean, "pred_mean_annual.rds")
+  saveRDS(monthly.mean, "../pred_mean_monthly.rds")
+  saveRDS(annual.mean, "../pred_mean_annual.rds")
+  
   print("Saved annual and monthly average of predictions")
+  
+  setwd("..")
   
   ###############################################################################
   print("#---  plot monthly and annual means  ---#")
   ###############################################################################
+  
+  monthly.mean = readRDS("pred_mean_monthly.rds")
+  annual.mean=readRDS("pred_mean_annual.rds")
   
   ##--- reshape to long format
   
@@ -443,36 +458,35 @@ if(formula_id<=6){
   monthly.mean.long$yearmonth = as.factor(substr(as.character(monthly.mean.long$month),5,11))
   monthly.mean.long$month = as.factor(substr(as.character(monthly.mean.long$month),10,11))
   
-  ggsave('annual.mean.png', 
-         plot=ggplot(annual.mean.long) +
-           geom_raster(aes(x=easting,y=northing, fill = no2)) +
-           facet_wrap("year",ncol=3) +
-           scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-           ggtitle(expression(paste("Average ",log(NO[2])," predictions by year"))) +
-           geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
-           geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
-           theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-                 axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-                 legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
-                 legend.text = element_text(size=7, vjust=-0.5)) +
-           labs(x="Easting",y="Northing"), 
-         width = 9, height = 6, unit="in", dpi=600)
+  
+  annual.mean.long.plot = ggplot(annual.mean.long) +
+    geom_raster(aes(x=easting,y=northing, fill = no2)) +
+    facet_wrap("year",ncol=3) +
+    scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
+    ggtitle(expression(paste("Average ",log(NO[2])," predictions by year"))) +
+    geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
+    geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
+    theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+          axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+          legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
+          legend.text = element_text(size=7, vjust=-0.5)) +
+    labs(x="Easting",y="Northing")
+  ggsave('annual.mean.png', plot=annual.mean.long.plot, width = 9, height = 6, unit="in", dpi=600)
   
   
-  ggsave('monthly.mean.png', 
-         plot=ggplot(monthly.mean.long) + 
-           geom_raster(aes(x=easting,y=northing, fill = no2))+
-           facet_wrap("yearmonth", ncol=12) +
-           scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-           ggtitle(expression(paste("Average ",log(NO[2])," predictions by year and month"))) +
-           geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
-           geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
-           theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
-                 axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-                 legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
-                 legend.text = element_text(size=7, vjust=-0.5)) +
-           labs(x="Easting",y="Northing"), 
-         width = 15, height = 10, unit="in", dpi=600)
+  monthly.mean.long.plot =  ggplot(monthly.mean.long) + 
+    geom_raster(aes(x=easting,y=northing, fill = no2))+
+    facet_wrap("yearmonth", ncol=12) +
+    scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
+    ggtitle(expression(paste("Average ",log(NO[2])," predictions by year and month"))) +
+    geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
+    geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
+    theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
+          axis.ticks.x=element_blank(), axis.ticks.y=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
+          legend.key.height = unit(1.5,"cm"), #legend.title = element_text(margin = 10), 
+          legend.text = element_text(size=7, vjust=-0.5)) +
+    labs(x="Easting",y="Northing")
+  ggsave('monthly.mean.png', plot=monthly.mean.long.plot, width = 15, height = 10, unit="in", dpi=600)
   
   
   ##---  predictions for days of pollution events
@@ -486,7 +500,7 @@ if(formula_id<=6){
   
   pred_2007_06_24 = readRDS("predictions_by_day/predictions_2007-06-24.rds")
   pred_2008_06_22 = readRDS("predictions_by_day/predictions_2008-06-22.rds")
-  pred_2009_06_21 = readRDS("predictions_by_day/predictions_2009-06-21.rds")
+  pred_2009_06_21 = readRDS("predictions_by_day/predictions_2009-06-21.rds") #06/21
   pred_2010_06_20 = readRDS("predictions_by_day/predictions_2010-06-20.rds")
   
   pred_events = rbind(cbind(mean = rowMeans(pred_2007_12_11[,-c(1:3)], na.rm = T), day = "2007-12-11", pred.grid),
@@ -513,44 +527,44 @@ if(formula_id<=6){
                  legend.text = element_text(size=7, vjust=-0.5)),
          width=15, height=8, unit="in", dpi=600)
   
-
-  } else if(formula_id>=7){
-
+  
+} else if(formula_id>=7){
+  
   ######################################################
   print("#---  Summary of Posterior distributions of       ---#")
   print("#--- parameters and hyperparameters of interest   ---#")
   ######################################################
-
+  
   results_mod$summary.parameters = mod$parameters
-
+  
   marginals.parameters = read.table("OutGPP_Values_Parameter.txt", stringsAsFactors=F, header=F)
   colnames(marginals.parameters) = rownames(mod$parameters)
-
+  
   png('betas.png', width = 15, height = 15, unit="in", res=600)
   par(mfrow=c(4,5))
-
+  
   for(i in 1:ncol(marginals.parameters)){
     plot(density(marginals.parameters[,i]),
          main=paste0(colnames(marginals.parameters)[i]," (mean=",round(results_mod$summary.parameters$Mean[i],3),")"))
     abline(v=results_mod$summary.parameters$Mean[i], col="red")
   }
-
+  
   dev.off()
-
+  
   ######################################################
   print("#--- Correlation observed vs expected  ---#")
   ######################################################
-
+  
   validation= list()
-
+  
   validation$data = data.frame(valid[,c("code","site.type",paste0("date.idx.",pol),pol,paste0(pol,"_log"),"easting","northing")],fitted=mod$prediction)
   validation$data$code = as.character(validation$data$code)
-
+  
   validation$data$res.log=valid[,pol]-mod$prediction$Mean
   validation$measures = my.validation(z=valid[,pol], zhat=mod$prediction$Mean, names=TRUE)
-
+  
   results_mod$validation = validation
-
+  
   png('correlation_val.png', width = 10, height = 6, unit="in", res=600)
   par(mfrow=c(1,2))
   plot(y=validation$data[,pol],x=validation$data$fitted.Mean,asp=1,xlab='Expected values', ylab='Observed values',
@@ -561,7 +575,7 @@ if(formula_id<=6){
        main="Observed/Expected vs Expected")
   abline(h=1, col="red")
   dev.off()
-
+  
   png('correlation_val_bysite.png', width = 15, height = 15, unit="in", res=600)
   par(mfrow=c(5,5))
   unique.site = unique(validation$data$code)#[1:25] # ifelse(length(unique(validation$data$code))>25, unique(validation$data$code)[1:25], unique(validation$data$code))
@@ -572,7 +586,7 @@ if(formula_id<=6){
     abline(0:1, col="red")
   }
   dev.off()
-
+  
   png('correlation_val_bysitetype.png', width = 15, height = 5, unit="in", res=600)
   par(mfrow=c(1,3))
   for(sitetype in unique(valid$site.type)){
@@ -582,7 +596,7 @@ if(formula_id<=6){
     abline(0:1, col="red")
   }
   dev.off()
-
+  
   month=as.numeric(substr(valid$date,6,7))
   png('correlation_val_bymonth.png', width = 15, height = 15, unit="in", res=600)
   par(mfrow=c(3,4))
@@ -593,57 +607,53 @@ if(formula_id<=6){
     abline(0:1, col="red")
   }
   dev.off()
-
+  
   
   ######################################################
   print("#--- predictive capability  ---#")
   ######################################################
-
+  
   n.pred = 50
-  n.samples=60
-
+  n.samples=100
+  
   pred.mcmc = read.table("Prediction_sites_mcmc1.txt", stringsAsFactors=F, header=F)
-
+  
   print(mod$parameters)
-
+  
   # we need samples of sigma2eps: instead of exctracting samples from its posterior marginal,
   # we use rnorm because we do not have the posterior marginal
   samples.var = rnorm(n.samples, mean=mod$parameters$Mean[which(rownames(mod$parameters)=="sig2eps")], 
                       sd=mod$parameters$SD[which(rownames(mod$parameters)=="sig2eps")])
-
+  
   pred.mcmc = pred.mcmc[sample(nrow(pred.mcmc), size=n.samples),]
-
+  
   pred.mcmc = rbind(pred.mcmc,valid$no2)
-
-
+  
+  
   predictive.capability=apply(pred.mcmc, MARGIN = 2, FUN=extract.validation, variance=samples.var)
-
+  
   predictive.capability = as.data.frame(t(predictive.capability))
   predictive.capability = cbind(code=valid$code,
                                 date.idx=valid$date.idx,
                                 site.type=valid$site.type,
                                 predictive.capability)
-
+  
   pred.mcmc = as.data.frame(t(pred.mcmc))
   predictive.capability$CRPS = crps_sample(y=pred.mcmc[,(ncol(pred.mcmc)-1)], dat=as.matrix(pred.mcmc[,1:(ncol(pred.mcmc)-1)]))
-
+  
   results_mod$predictive.capability=predictive.capability
   saveRDS(results, "results.rds")
-
+  
   
   ######################################################
   print("#--- extract daily predictions ---#")
   ######################################################
-
+  
   coordinates.pred = pred.grid[,c("longitude","latitude")]
   
   pred.day = predict.spT(mod,newdata = pred.grid, newcoords = coordinates.pred[,c("longitude","latitude")])
   
-  ###############################################################################
-  print("#---  plot monthly and annual means  ---#")
-  ###############################################################################
-
 }
 
-setwd(wd)
+setwd("..")
 q(save = "no")

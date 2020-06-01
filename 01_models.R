@@ -2,8 +2,6 @@ print("#########################################################################
 print(paste0("Output_",formula_id,"_",pol,"_",data_id))
 print("####################################################################################")
 
-##--- If results folder and workspace are not found, create folder, set as working directory, and run the code
-
 if (!file.exists(file.path(getwd(),paste0("Output_",formula_id,"_",pol,"_",data_id)))){
   dir.create(file.path(getwd(),paste0("Output_",formula_id,"_",pol,"_",data_id)))
 } 
@@ -12,6 +10,15 @@ print(getwd())
 
 if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
   
+  valid = final_dataset[final_dataset$code %in% monitors_val[[data_id]] , ]
+  estim = final_dataset[!(final_dataset$code %in% monitors_val[[data_id]]) , ]
+  
+  coordinates.estim<-unique(estim[,c("loc.idx","easting","northing")])
+  coordinates.valid<-unique(valid[,c("loc.idx","easting","northing")])
+  
+  n_monitors=nrow(coordinates.y)
+  n_data=nrow(estim)+nrow(valid)
+  n_days=n_data/n_monitors
   
   #=================================================== 
   ### Create mesh
@@ -53,7 +60,7 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
   
   
   ############################################################################
-  ########                JOINT MODELS WITH AQUM ONLY                #########
+  ########                JOINT MODEL WITH AQUM ONLY                #########
   ############################################################################
   
   if(formula_id==1){
@@ -96,14 +103,17 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
                #control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-               control.inla = list(strategy='gaussian',int.strategy='eb'),
+               control.inla = list(adaptive,int.strategy='eb'),
                verbose=TRUE)
-
+    
+    # saveRDS(mod, "mod_",formula_id,".rds")  
   }
   
   
+  ##--- NOTE: the INLA call can be parallelized using Pardiso - see inla.pardiso()
+  
   ############################################################################
-  ########                JOINT MODELS WITH PCM ONLY                 #########
+  ########                JOINT MODEL WITH PCM ONLY                 #########
   ############################################################################
   
   if(formula_id==2){
@@ -145,10 +155,12 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                family=c("gaussian","gaussian"),
                data=inla.stack.data(stack),
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
+               # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-               control.inla = list(strategy='gaussian',int.strategy='eb'),
+               control.inla = list(adaptive,int.strategy='eb'),
                verbose=TRUE)
- 
+    
+    # saveRDS(mod, "mod_",formula_id,".rds")  
   }
   
   
@@ -204,10 +216,24 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                family=c("gaussian","gaussian","gaussian"),
                data=inla.stack.data(stack),
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
+               # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
+               # control.mode = list(theta = c(
+               #   log(1 / sd(pcm$no2_log, na.rm=T)^2), # theta[0] = [Log precision for the Gaussian observations]
+               #   log(1 / sd(aqum$no2_log, na.rm=T)^2), # theta[1] = [Log precision for the Gaussian observations[2]]
+               #   log(1 / sd(estim$no2_log, na.rm=T)^2), # theta[2] = [Log precision for the Gaussian observations[3]]
+               #   log(1 / 0.1), # theta[3] = [Log precision for z2]
+               #   log(range0), # theta[4] = [log(Range) for z1]
+               #   log(1 / 1000), # theta[5] = [log(Stdev) for z1]
+               #   log(1 / 0.1), # theta[6] = [Log precision for date.idx.no2]
+               #   inla.models()$latent$ar1$hyper$theta2$to.theta(0.3), # theta[7] = [Rho_intern for date.idx.no2]
+               #   1, # theta[8] = [Beta_intern for z2.copy]
+               #   1), # theta[9] = [Beta_intern for z1.copy]
+               #   restart = TRUE),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-               control.inla = list(strategy='gaussian',int.strategy='eb'),
+               control.inla = list(adaptive,int.strategy='eb'),
                verbose=TRUE)
- 
+    
+    # saveRDS(mod, "mod_",formula_id,".rds")  
   }
   
   if(formula_id==4){
@@ -254,10 +280,12 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                family=c("gaussian","gaussian","gaussian"),
                data=inla.stack.data(stack),
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
+               # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-               control.inla = list(strategy='gaussian',int.strategy='eb'),
+               control.inla = list(adaptive,int.strategy='eb'),
                verbose=TRUE)
     
+    # saveRDS(mod, "mod_",formula_id,".rds")  
   }
   
   
@@ -299,8 +327,10 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
                # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-               control.inla = list(strategy='gaussian',int.strategy='eb'),
+               control.inla = list(adaptive,int.strategy='eb'),
                verbose=TRUE)
+    
+    # saveRDS(mod, "mod_",formula_id,".rds")
     
   }
   
@@ -346,7 +376,7 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                     control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stk_aqum_no2)),
                     # control.fixed = list(mean.intercept=2.5, prec.intercept=0.01),
                     control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-                    control.inla = list(strategy='gaussian',int.strategy='eb'),
+                    control.inla = list(adaptive,int.strategy='eb'),
                     #control.inla=list(strategy="laplace", int.strategy ="eb", h=1e-03),
                     verbose=TRUE)
       
@@ -429,15 +459,20 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                control.predictor=list(compute=TRUE,link=1, A=inla.stack.A(stack)),
                # control.fixed = list(mean.intercept=3, prec.intercept=0.001),
                control.compute = list(dic = TRUE,cpo=TRUE, config=TRUE, waic=TRUE),
-               control.inla = list(strategy='gaussian',int.strategy='eb'),
+               control.inla = list(adaptive,int.strategy='eb'),
                verbose=TRUE)
+    
+    # saveRDS(mod, "mod_",formula_id,".rds")
     
   }
   
   
   ############################################################################
-  ########            Model from Mukhopadhyay and Sahu, 2017         #########
+  ########          MODEL FROM Mukhopadhyay and Sahu (2017)          #########
   ############################################################################
+  
+  ##--- See http://www.soton.ac.uk/~sks/pollution_estimates/  for original code
+  ##--- Our configuration is based on the authors' best model results
   
   # aqum only
   # non-stationarity
@@ -475,11 +510,9 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
     
     # input for spatial decay
     spatial.decay<-spT.decay(distribution="FIXED",value=0.001);
-    # spatial.decay<-spT.decay(distribution=Gamm(2,1), tuning=0.08)
     
     # Define scale (response variable must be on natural scale)
     scale = "LOG"
-    
     
     # select estim and valid subsets
     valid = final_dataset[final_dataset$code %in% monitors_val_cheat[[data_id]] , ]
@@ -539,7 +572,8 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
                               grid_prob=grid_prob,
                               report=1000,
                               predloc=posT);
-    }else{ # use old function in spTimer for stationary model
+    }
+    if(formula_id==9){ # use old function in spTimer for stationary model
       mod <- spTimer::spT.Gibbs(formula=formulas[[formula_id]],
                                 data=estim,
                                 model="GPP",
@@ -561,9 +595,15 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
     
   }
   
-  save.image("workspace_results.RData")
+  
   
 }
+
+
+
+
+
+save.image("workspace_results.RData")
 
 
 q(save="no")

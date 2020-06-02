@@ -26,9 +26,8 @@ The workspace contains the following objects:
     days
 -   `pcm`: annual output of the PCM model for 44117 locations and 5
     years
--   `final_dataset`: daily observations of NO**<sub>2</sub>
-    concentration for 126 monitors and 1826 days with associated site
-    type
+-   `final_dataset`: daily observations of NO2 concentration for 126
+    monitors and 1826 days with associated site type
 -   `boundary`: boundary of the study area
 -   `london.shape`: boundary of Greater London
 -   `england.shape`: boundary of England
@@ -41,10 +40,10 @@ The workspace contains the following objects:
 -   `pred.grid`: locations where we want to make predictions and
     corresponding site type
 -   `pred.grid.aqum`: values of AQUM interpolated at the prediction grid
-    nodes, for each day
+    nodes, for each day (not used for the joint model predictions)
 -   `pred.grid.pcm`: values of PCM interpolated at the prediction grid
-    nodes, for each year
--   `roads.major`: shapefile of motorways over the study area
+    nodes, for each year (not used for the joint model predictions)
+-   `roads_major`: shapefile of motorways over the study area
 
 Note that all coordinates are in UTM projection so that distances are
 computed in meters. Results do not change when rescaling UTM coordinates
@@ -79,15 +78,21 @@ code:
 
 -   *z*<sub>2</sub> is referred to as `z2`, and the copy for y as `z23`
 
--   The prior for *λ*<sub>1, 2</sub> is called `lambda12`
+-   *z*<sub>3</sub> is referred to as `z3`
 
--   The prior for *λ*<sub>1, 3</sub> is called `lambda13`
+-   *λ*<sub>1, 2</sub> is automatically called `Beta for z12` and its
+    prior is called `lambda12`
 
--   The prior for *λ*<sub>2, 3</sub> is called `lambda23`
+-   *λ*<sub>1, 3</sub> is automatically called `Beta for z13` and its
+    prior is called `lambda13`
+
+-   *λ*<sub>2, 3</sub> is automatically called `Beta for z23` and its
+    prior is called `lambda23`
 
 -   The intercepts are `alpha1`, `alpha2` and `alpha3`
 
--   *β*<sub>*k*<sub>*s*</sub></sub> are `stURB` and `stRKS` respectively
+-   *β*<sub>*k*<sub>*s*</sub></sub> are `betaURB` and `betaRKS`
+    respectively
 
 <!---
 

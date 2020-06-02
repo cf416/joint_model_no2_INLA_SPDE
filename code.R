@@ -49,13 +49,13 @@ legend("topleft",inset=c(-0.15,0.1),legend=c("PCM","AQUM","Rural monitors","Urba
                                              "Roadside/ \n Kerbside monitors"), col = c("black","red","green3","orange","blue"),
        pch=c(3,19,8,15,17), cex=.7, pt.cex=1.2, bty = "n")
 
-formula = as.formula(paste0("y ~ -1 + alpha1 + alpha2 + alpha3 + stURB.",pol," + stRKS.",pol," +  
-                                  f(z2, model='rw1', hyper = rw1.aqum.prior, scale.model = TRUE, constr = TRUE) +
-                            f(z23, copy='z2', fixed = FALSE, hyper=lambda23) + 
-                            f(z1, model=spde, extraconstr = list(A=matrix(1,ncol=mesh$n,nrow=1), e=matrix(0,ncol=1))) +
-                            f(z12, copy='z1', fixed = FALSE, hyper=lambda12) + 
-                            f(z13, copy='z1', fixed = FALSE, hyper=lambda13) + 
-                            f(date.idx.",pol,", model='ar1', hyper=ar1.time.prior, replicate = sitetype.idx, constr=TRUE, rankdef = 1)"))
+formula = y ~ -1 + alpha1 + alpha2 + alpha3 + betaURB + betaRKS +  
+              f(z2, model='rw1', hyper = rw1.aqum.prior, scale.model = TRUE, constr = TRUE) +
+              f(z23, copy='z2', fixed = FALSE, hyper=lambda23) + 
+              f(z1, model=spde, extraconstr = list(A=matrix(1,ncol=mesh$n,nrow=1), e=matrix(0,ncol=1))) +
+              f(z12, copy='z1', fixed = FALSE, hyper=lambda12) + 
+              f(z13, copy='z1', fixed = FALSE, hyper=lambda13) + 
+              f(z3, model='ar1', hyper=ar1.time.prior, replicate = sitetype.idx, constr=TRUE, rankdef = 1)
 
 #=================================================== 
 ### Run models and extract results
@@ -144,7 +144,10 @@ stk_y_e <- inla.stack(data=list(y=cbind(NA,NA,estim[,paste0(pol,"_log")])),
                       effects=list(list(z23=estim[,paste0("date.idx.",pol)]),
                                    list(z13=1:spde$n.spde),
                                    data.frame(alpha1=1,
-                                              estim[,c(paste0("date.idx.",pol),"sitetype.idx","loc.idx","code",paste0("stURB.",pol),paste0("stRKS.",pol),"easting","northing")])), 
+                                              z3=estim[,paste0("date.idx.",pol)],
+                                              betaURB=estim[,paste0("stURB.",pol)],
+                                              betaRKS=estim[,paste0("stRKS.",pol)],
+                                              estim[,c("sitetype.idx","loc.idx","code","easting","northing")])), 
                       A=list(1, A_y_e, 1),
                       tag="est.y")
 
@@ -154,7 +157,10 @@ stk_y_v <- inla.stack(data=list(y=cbind(NA,NA,rep(NA,length(valid[,paste0(pol,"_
                       effects=list(list(z23=valid[,paste0("date.idx.",pol)]),
                                    list(z13=1:spde$n.spde),
                                    data.frame(alpha1=1,
-                                              valid[,c(paste0("date.idx.",pol),"sitetype.idx","loc.idx","code",paste0("stURB.",pol),paste0("stRKS.",pol),"easting","northing")])),
+                                              z3=valid[,paste0("date.idx.",pol)],
+                                              betaURB=valid[,paste0("stURB.",pol)],
+                                              betaRKS=valid[,paste0("stRKS.",pol)],
+                                              valid[,c("sitetype.idx","loc.idx","code","easting","northing")])),
                       A=list(1, A_y_v, 1),
                       tag="val.y")
 
@@ -228,18 +234,18 @@ print(index.spat.field)
 
 ##--- Time-sitetype interaction
 
-rur.mean <- ts(mod$summary.random$date.idx$mean[1:1826], start = c(2007, 1), frequency = 365)
-rur.mean.low <- ts(mod$summary.random$date.idx$`0.025quant`[1:1826], start = c(2007, 1), frequency = 365)
-rur.mean.upp <- ts(mod$summary.random$date.idx$`0.975quant`[1:1826], start = c(2007, 1), frequency = 365)
-urb.mean <- ts(mod$summary.random$date.idx$mean[1827:(2*1826)], start = c(2007, 1), frequency = 365)
-urb.mean.low <- ts(mod$summary.random$date.idx$`0.025quant`[1827:(2*1826)], start = c(2007, 1), frequency = 365)
-urb.mean.upp <- ts(mod$summary.random$date.idx$`0.975quant`[1827:(2*1826)], start = c(2007, 1), frequency = 365)
-rks.mean <- ts(mod$summary.random$date.idx$mean[(2*1826+1):(3*1826)], start = c(2007, 1), frequency = 365)
-rks.mean.low <- ts(mod$summary.random$date.idx$`0.025quant`[(2*1826+1):(3*1826)], start = c(2007, 1), frequency = 365)
-rks.mean.upp <- ts(mod$summary.random$date.idx$`0.975quant`[(2*1826+1):(3*1826)], start = c(2007, 1), frequency = 365)
+rur.mean <- ts(mod$summary.random$z3$mean[1:1826], start = c(2007, 1), frequency = 365)
+rur.mean.low <- ts(mod$summary.random$z3$`0.025quant`[1:1826], start = c(2007, 1), frequency = 365)
+rur.mean.upp <- ts(mod$summary.random$z3$`0.975quant`[1:1826], start = c(2007, 1), frequency = 365)
+urb.mean <- ts(mod$summary.random$z3$mean[1827:(2*1826)], start = c(2007, 1), frequency = 365)
+urb.mean.low <- ts(mod$summary.random$z3$`0.025quant`[1827:(2*1826)], start = c(2007, 1), frequency = 365)
+urb.mean.upp <- ts(mod$summary.random$z3$`0.975quant`[1827:(2*1826)], start = c(2007, 1), frequency = 365)
+rks.mean <- ts(mod$summary.random$z3$mean[(2*1826+1):(3*1826)], start = c(2007, 1), frequency = 365)
+rks.mean.low <- ts(mod$summary.random$z3$`0.025quant`[(2*1826+1):(3*1826)], start = c(2007, 1), frequency = 365)
+rks.mean.upp <- ts(mod$summary.random$z3$`0.975quant`[(2*1826+1):(3*1826)], start = c(2007, 1), frequency = 365)
 
-lower = min(mod$summary.random$date.idx.no2$`0.025quant`)
-upper = max(mod$summary.random$date.idx.no2$`0.975quant`)
+lower = min(mod$summary.random$z3$`0.025quant`)
+upper = max(mod$summary.random$z3$`0.975quant`)
 png('time_sitetype_interaction.png', width = 8, height = 8, unit="in", res=600)
 par(mfrow=c(3,1))
 plot(rur.mean.upp, type="l", ylab=expression(paste(mu,"g/",m^3)), xlab="Year", ylim=c(lower,upper), main="RUR", lty="twodash", col="red")

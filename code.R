@@ -49,19 +49,19 @@ legend("topleft",inset=c(-0.15,0.1),legend=c("PCM","AQUM","Rural monitors","Urba
                                              "Roadside/ \n Kerbside monitors"), col = c("black","red","green3","orange","blue"),
        pch=c(3,19,8,15,17), cex=.7, pt.cex=1.2, bty = "n")
 
-formula = as.formula(paste0("y ~ -1 + intercept + intercept.aqum + intercept.pcm + stURB.",pol," + stRKS.",pol," +  
-                                  f(csi.field, model='rw1', hyper = rw1.aqum.prior, scale.model = TRUE, constr = TRUE) +
-                            f(csi.field.copy, copy='csi.field', fixed = FALSE, hyper=lambda.aqum.time.prior) + 
-                            f(psi.field, model=spde, extraconstr = list(A=matrix(1,ncol=mesh$n,nrow=1), e=matrix(0,ncol=1))) +
-                            f(psi.field.aqum.copy, copy='psi.field', fixed = FALSE, hyper=lambda.aqum.space.prior) + 
-                            f(psi.field.copy, copy='psi.field', fixed = FALSE, hyper=lambda.pcm.prior) + 
+formula = as.formula(paste0("y ~ -1 + alpha1 + alpha2 + alpha3 + stURB.",pol," + stRKS.",pol," +  
+                                  f(z2, model='rw1', hyper = rw1.aqum.prior, scale.model = TRUE, constr = TRUE) +
+                            f(z23, copy='z2', fixed = FALSE, hyper=lambda23) + 
+                            f(z1, model=spde, extraconstr = list(A=matrix(1,ncol=mesh$n,nrow=1), e=matrix(0,ncol=1))) +
+                            f(z12, copy='z1', fixed = FALSE, hyper=lambda12) + 
+                            f(z13, copy='z1', fixed = FALSE, hyper=lambda13) + 
                             f(date.idx.",pol,", model='ar1', hyper=ar1.time.prior, replicate = sitetype.idx, constr=TRUE, rankdef = 1)"))
 
 #=================================================== 
 ### Run models and extract results
 #===================================================
 ##--- NOTE: data_id indicates the validation set and is received from the bash script
-data_id <- as.numeric(Sys.getenv("DATA_ID")) # 1 to 6
+data_id <- ifelse(nchar(Sys.getenv("DATA_ID"))>0, as.numeric(Sys.getenv("DATA_ID")), 1) # 1 to 6
 
 if (!file.exists(file.path(getwd(),paste0("Output_",data_id)))){
   dir.create(file.path(getwd(),paste0("Output_",data_id)))
@@ -113,9 +113,9 @@ rw1.aqum.prior = list(theta=list(prior="pc.prec", param=c(sd(aqum[,paste0(pol,"_
 ar1.time.prior = list(theta2 = list(prior='normal', 
                                     param=c(inla.models()$latent$ar1$hyper$theta2$to.theta(0.3), 0.5)))
 
-lambda.aqum.time.prior = list(theta = list(prior = 'normal', param = c(0.9, 0.01), initial=0.9))  # lambda_2,3
-lambda.aqum.space.prior = list(theta = list(prior = 'normal', param = c(1.1, 0.01), initial=1.1))  # lambda_1,2
-lambda.pcm.prior = list(theta = list(prior = 'normal', param = c(1.3, 0.01), initial=1.3)) # lambda_1,3
+lambda23 = list(theta = list(prior = 'normal', param = c(0.9, 0.01), initial=0.9))  # lambda_2,3
+lambda12 = list(theta = list(prior = 'normal', param = c(1.1, 0.01), initial=1.1))  # lambda_1,2
+lambda13 = list(theta = list(prior = 'normal', param = c(1.3, 0.01), initial=1.3)) # lambda_1,3
 
 
 
@@ -126,24 +126,24 @@ lambda.pcm.prior = list(theta = list(prior = 'normal', param = c(1.3, 0.01), ini
 ## ***** PCM *****
 A_pcm <- inla.spde.make.A(mesh=mesh, cbind(pcm$easting, pcm$northing))
 stk_pcm <- inla.stack(data=list(y=cbind(pcm[,paste0(pol,"_log")], NA, NA)),  
-                      effects=list(list(intercept.pcm=rep(1,nrow(pcm))), list(psi.field=1:spde$n.spde)),
+                      effects=list(list(alpha3=rep(1,nrow(pcm))), list(z1=1:spde$n.spde)),
                       A=list(1,A_pcm),
                       tag="est.pcm")
 
 ## ***** AQUM *****
 A_aqum <- inla.spde.make.A(mesh=mesh,cbind(aqum$easting, aqum$northing))
 stk_aqum <- inla.stack(data=list(y=cbind(NA, aqum[,paste0(pol,"_log")], NA)),  
-                       effects=list(list(intercept.aqum=1, csi.field=aqum$date.idx),
-                                    list(psi.field.aqum.copy=1:spde$n.spde)), 
+                       effects=list(list(alpha2=1, z2=aqum$date.idx),
+                                    list(z12=1:spde$n.spde)), 
                        A=list(1, A_aqum), 
                        tag="est.aqum")
 
 ## data stack: include all the effects
 A_y_e <- inla.spde.make.A(mesh=mesh, cbind(estim$easting,estim$northing))
 stk_y_e <- inla.stack(data=list(y=cbind(NA,NA,estim[,paste0(pol,"_log")])),  
-                      effects=list(list(csi.field.copy=estim[,paste0("date.idx.",pol)]),
-                                   list(psi.field.copy=1:spde$n.spde),
-                                   data.frame(intercept=1,
+                      effects=list(list(z23=estim[,paste0("date.idx.",pol)]),
+                                   list(z13=1:spde$n.spde),
+                                   data.frame(alpha1=1,
                                               estim[,c(paste0("date.idx.",pol),"sitetype.idx","loc.idx","code",paste0("stURB.",pol),paste0("stRKS.",pol),"easting","northing")])), 
                       A=list(1, A_y_e, 1),
                       tag="est.y")
@@ -151,9 +151,9 @@ stk_y_e <- inla.stack(data=list(y=cbind(NA,NA,estim[,paste0(pol,"_log")])),
 ### validation scenario
 A_y_v <- inla.spde.make.A(mesh=mesh, cbind(valid$easting, valid$northing))
 stk_y_v <- inla.stack(data=list(y=cbind(NA,NA,rep(NA,length(valid[,paste0(pol,"_log")])))),
-                      effects=list(list(csi.field.copy=valid[,paste0("date.idx.",pol)]),
-                                   list(psi.field.copy=1:spde$n.spde),
-                                   data.frame(intercept=1,
+                      effects=list(list(z23=valid[,paste0("date.idx.",pol)]),
+                                   list(z13=1:spde$n.spde),
+                                   data.frame(alpha1=1,
                                               valid[,c(paste0("date.idx.",pol),"sitetype.idx","loc.idx","code",paste0("stURB.",pol),paste0("stRKS.",pol),"easting","northing")])),
                       A=list(1, A_y_v, 1),
                       tag="val.y")
@@ -202,7 +202,7 @@ if(mean(mod$cpo$failure, na.rm = T)!=0){
   #  2. run mod = inla.cpo(mod) #recomputes in an efficient way the cpo/pit for which mod$cpo$failure > 0
   mod_imp = inla.cpo(mod)
   print("Model cpo have been improved")
-  validation$logscore = -mean(log(mod_imp$cpo$cpo), na.rm=T)
+  logscore = -mean(log(mod_imp$cpo$cpo), na.rm=T)
   par(mfrow=c(1,2))
   hist(mod_imp$cpo$pit, breaks=100, main=paste0("PIT improved - n.failures=", n.failures))
   hist(mod_imp$cpo$cpo, breaks=100, main=paste0("CPO improved - n.failures=", n.failures))
@@ -220,10 +220,10 @@ if(mean(mod$cpo$failure, na.rm = T)!=0){
 
 print(names(mod$summary.random))
 # Index for the temporal fields
-index.temp.field = which(substr(names(mod$summary.random),1,9) == "csi.field" & substr(names(mod$summary.random),1,15) != "csi.field.space" )
+index.temp.field = which(substr(names(mod$summary.random),1,2) == "z2")
 print(index.temp.field)
 # Index for the spatial fields
-index.spat.field = which(substr(names(mod$summary.random),1,9) == "psi.field" | substr(names(mod$summary.random),1,15) == "csi.field.space")
+index.spat.field = which(substr(names(mod$summary.random),1,2) == "z1")
 print(index.spat.field)
 
 ##--- Time-sitetype interaction

@@ -6,7 +6,7 @@ the paper *A Joint Bayesian Space-Time Model to Integrate Spatially
 Misaligned Air Pollution Data in R-INLA* (Forlani C., Bhatt S.,
 Cameletti M., Krainski E., Blangiardo M.), under review.
 
-We are trying to improve the predictions of NO<sub>2</sub>
+We are trying to improve the predictions of NO**<sub>2</sub>
 concentration integrating data from two deterministic models called AQUM
 and PCM. The observations from the monitoring stations represent our
 response variable.
@@ -26,7 +26,7 @@ The workspace contains the following objects:
     days
 -   `pcm`: annual output of the PCM model for 44117 locations and 5
     years
--   `final_dataset`: daily observations of NO<sub>2</sub>
+-   `final_dataset`: daily observations of NO**<sub>2</sub>
     concentration for 126 monitors and 1826 days with associated site
     type
 -   `boundary`: boundary of the study area
@@ -54,38 +54,40 @@ Please see the paper for data description.
 
 ### How to run the code
 
-To run the code you just need to run the script `00_main.R` which
-contains instructions for data praparation and sources all the other
-scripts.
+To run the code you just need to run the script `code.R` which contains
+instructions for data praparation and sources all the other necessary
+scripts. The script should be ideally called from an array job passing
+DATA\_ID as a variable taking valueas 1 to 6, in order to run the model
+for the 6 validation sets in parallel.
 
-These can also be run manually setting `data_id` (1 to 6) and
-`formula_id` (1 to 9) once the data are loaded.
-
+<!-- These can also be run manually setting `data_id` (1 to 6) and `formula_id` (1 to 9) once the data are loaded. -->
 ### Notes on the notation
 
-Please see the paper for details on the model specification for all the
-models under comparison.
+Please see the paper for details on the model specification.
 
 The following are differences in the notation from the paper to the
 code:
 
--   *y*<sub>1</sub>(*s*, *t*) is referred to as `pcm`
+-   *y*<sub>1</sub> is referred to as `pcm`
 
--   *y*<sub>2</sub>(*s*, *t*) is referred to as `aqum`
+-   *y*<sub>2</sub> is referred to as `aqum`
 
--   *y*<sub>3</sub>(*s*, *t*) is referred to as `y`
+-   *y*<sub>3</sub> is referred to as `y`
 
--   *z*<sub>1</sub>(*s*) is referred to as `psi.field`, the copy for y
-    as `psi.field.copy`, the copy for AQUM as `psi.field.aqum.copy`
+-   *z*<sub>1</sub> is referred to as `z1`, the copy for y as `z13`, the
+    copy for AQUM as `z12`
 
--   *z*<sub>2</sub>(*t*) is referred to as `csi.field`, and the copy for
-    y as `csi.field.copy`
+-   *z*<sub>2</sub> is referred to as `z2`, and the copy for y as `z23`
 
--   The prior for *λ*<sub>1, 2</sub> is called `lambda.aqum.space.prior`
+-   The prior for *λ*<sub>1, 2</sub> is called `lambda12`
 
--   The prior for *λ*<sub>1, 3</sub> is called `lambda.pcm.prior`
+-   The prior for *λ*<sub>1, 3</sub> is called `lambda13`
 
--   The prior for *λ*<sub>2, 3</sub> is called `lambda.aqum.time.prior`
+-   The prior for *λ*<sub>2, 3</sub> is called `lambda23`
+
+-   The intercepts are `alpha1`, `alpha2` and `alpha3`
+
+-   *β*<sub>*k*<sub>*s*</sub></sub> are `stURB` and `stRKS` respectively
 
 <!---
 

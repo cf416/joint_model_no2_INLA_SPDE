@@ -59,6 +59,8 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
   lambda.pcm.prior = list(theta = list(prior = 'normal', param = c(1.3, 0.01), initial=1.3)) # lambda_1,3
   
   
+  ##--- NOTE: the INLA call can be parallelized using Pardiso - see inla.pardiso()
+  
   ############################################################################
   ########                JOINT MODEL WITH AQUM ONLY                #########
   ############################################################################
@@ -110,7 +112,6 @@ if (!file.exists(file.path(getwd(),"/workspace_results.RData"))){
   }
   
   
-  ##--- NOTE: the INLA call can be parallelized using Pardiso - see inla.pardiso()
   
   ############################################################################
   ########                JOINT MODEL WITH PCM ONLY                 #########

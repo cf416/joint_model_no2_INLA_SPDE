@@ -115,11 +115,11 @@ my.validation = function (z, zhat, lower=NULL, upper=NULL, penalty=NULL, names =
 }
 
 
-# this function gets in input rows of sample.fitted, each with the sample.size samples and the observed value in last position,
+# this function gets in input rows of samples.fitted, each with the sample.size samples and the observed value in last position,
 # and the vector of varicances of length sample.size;
 # extracts n.pred predictions for each sample generating vector of n.pred x sample.size elements;
 # returns predicted values.
-# NOTE: correlation cannot be computed from single observed value as SD is zero; the sample mean is returned instead, to allow computation later.
+# NOTE: correlation cannot be computed from single observed value as SD is zero; the sample mean is returned instead, to allow for computation later.
 # NOTE: the CI for coverage is computed at each sample.
 extract.predicted = function(sample, variance){
   prediction.vector.tot = NULL
@@ -138,6 +138,8 @@ extract.predicted = function(sample, variance){
   return(predicted)
 }
 
+# This function takes in input the inla.posterior.sample id and returns the list of sampled model components 
+# posterior.samples and contents must be in the global environment.
 extract.contents = function(sample){
   print(paste0("sample n. ",sample))
   ps=posterior.samples[[sample]]$latent
@@ -154,14 +156,17 @@ extract.contents = function(sample){
   return(mod.comp)
 }
 
+# This function takes in input the index of the day and saves a file "predictions_by_day/predictions_yyyy_mm_dd.rds" containing 
+# a data.frame with n.samples columns, one for each sample, and a number of rows equal to the number of locations in the prediction grid.
+# n.sample and pred.grid must be in the global environment.
 compute.daily.predictions = function(day){
   print(paste0("Calculating predictions for day ",day))
   
   ## prepare first columns with geographic information
   pred_day = pred.grid[,c("easting","northing","sitetype")]
   
-  pred_day_data=matrix(NA, nrow=nrow(pred.grid), ncol=nrow(contents))
-  colnames(pred_day_data) = c(as.character(contents[3:nrow(contents), "tag"]),"date.idx.no2.urb","date.idx.no2.rks")
+  pred_day_data=matrix(NA, nrow=nrow(pred.grid), ncol=nrow(contents)-2)
+  colnames(pred_day_data) = as.character(contents[3:nrow(contents), "tag"])
   
   for(sample in 1:n.samples){  # for each sample...
     if(sample %% 10 == 0) print(paste0("Sample: ",sample))
@@ -180,9 +185,9 @@ compute.daily.predictions = function(day){
       }else if(contents[i+2,"length"]==n.days){
         pred_day_data[,i] = rep(fields[[sample]][i][[1]][day],nrow(pred_day))
       }else if(contents[i+2,"length"]==n.days*3){
-        pred_day_data[,i] = rep(fields[[sample]][i][[1]][day],nrow(pred_day))
-        pred_day_data[,nrow(contents)-1] = rep(fields[[sample]][i][[1]][n.days+day],nrow(pred_day))
-        pred_day_data[,nrow(contents)] = rep(fields[[sample]][i][[1]][n.days+n.days+day],nrow(pred_day))
+        pred_day_data[,i] = rep(fields[[sample]][i][[1]][day],nrow(pred_day))*pred.grid$pred.stRUR +
+                            rep(fields[[sample]][i][[1]][n.days+day],nrow(pred_day))*pred.grid$pred.stURB +
+                            rep(fields[[sample]][i][[1]][n.days+n.days+day],nrow(pred_day))*pred.grid$pred.stRKS
       }
     }
     ## then sum all the model components except "intercept.aqum" and "intercept.pcm" and add the column to pred_day
@@ -309,7 +314,7 @@ formulas[[9]] = as.formula(paste0(pol," ~ aqum_log_",pol," + pcm_log_",pol," + a
 ############################################################################
 
 ##--- run models and extract results
-##--- this can be parallelized 
+##--- NOTE: this can be parallelized 
 for(data_id in 1:length(monitors_val)){
   for(formula_id in 1:length(formulas)){
     source("01_models.R")
@@ -317,3 +322,5 @@ for(data_id in 1:length(monitors_val)){
   }
 }
 
+##--- run script to compare the results
+source("03_comparison.R")

@@ -1,6 +1,4 @@
-remove(list = ls())
-
-load("workspace_results.RData")
+#load("workspace_results.RData")
 
 set.seed(123)
 
@@ -55,13 +53,13 @@ if(formula_id<=6){
   
   
   ######################################################
-  print("#--- goodness of fit  ---#")
+  print("#--- Goodness of fit  ---#")
   ######################################################
   
   # extract summary fitted values
-  fitted=mod$summary.fitted.values[inla.stack.index(stack,"val.y")$data,]
+  fitted = mod$summary.fitted.values[inla.stack.index(stack,"val.y")$data,]
   
-  validation= list()
+  validation = list()
   
   validation$data = data.frame(valid[,c("code","site.type",paste0("date.idx.",pol),pol,paste0(pol,"_log"),"easting","northing")],fitted=fitted)
   validation$data$code = as.character(validation$data$code)
@@ -121,8 +119,8 @@ if(formula_id<=6){
   
   png('correlation_val_bysite.png', width = 15, height = 15, unit="in", res=600)
   par(mfrow=c(5,5))
-  # take first 25 validation sites (in 3 sets there are 26)
-  unique.site = unique(validation$data$code)[1:25] # ifelse(length(unique(validation$data$code))>25, unique(validation$data$code)[1:25], unique(validation$data$code))
+  # take first 25 validation sites (in 3 sets there are 26) for visualisation purposes
+  unique.site = ifelse(length(unique(validation$data$code))>25, unique(validation$data$code)[1:25], unique(validation$data$code))
   for(site in unique.site){
     index=which(validation$data$code==site)
     plot(y=validation$data[,paste0(pol,"_log")][index],x=validation$data$fitted.mean[index],asp=1,xlab='Expected values', ylab='Observed values',
@@ -154,14 +152,14 @@ if(formula_id<=6){
   
   
   ######################################################
-  print("#--- check spatial and temporal trend of residuals  ---#")
+  print("#--- Check spatial and temporal trend of residuals  ---#")
   ######################################################
   
-  print("# residual temporal trend")
+  print("Residual temporal trend")
   
   z <- ts(matrix(validation$data$res.log, ncol=nrow(coordinates.valid),byrow=T), start = c(2007, 1), frequency = 365)
   
-  png('temp_res_fix.png', width = 15, height = 10, unit="in", res=600)
+  png('temp_res.png', width = 15, height = 10, unit="in", res=600)
   par(mfrow=c(5,5), mar=c(3,2,6,2), oma=c(0,0,1,0))
   for(i in 1:25){ 
     plot(z[,i], main=paste0(unique(valid$code)[i]," - ",valid[valid$code==unique(valid$code)[i],"site.type"][1]), ylab="", xlab="", ylim=c(min(z, na.rm = T),max(z,na.rm = T)))
@@ -170,19 +168,14 @@ if(formula_id<=6){
   title("Temporal trend of residuals on log scale, by monitor - fixed scale", outer=TRUE,cex.main=2)
   dev.off()
   
-  png('temp_res.png', width = 15, height = 10, unit="in", res=600)
-  par(mfrow=c(5,5), mar=c(3,2,6,2), oma=c(0,0,1,0))
-  for(i in 1:25){ 
-    plot(z[,i], main=paste0(unique(valid$code[i])," - ",valid[valid$code==unique(valid$code)[i],"site.type"][1]), ylab="", xlab="")
-    abline(h=0, col="red")
-  }
-  title("Temporal trend of residuals on log scale, by monitor", outer=TRUE,cex.main=2)
-  dev.off()
+ 
   
   
-  print("variogram")
+  print("Compare spatio-temporal variogram of data and residuals")
   
-  # #Create a SpatialPointsDataFrame in UTM coordinates
+  ## RESIDUALS 
+  
+  # Create a SpatialPointsDataFrame in UTM coordinates
   res=validation$data
   coordinates(res) <- ~easting+northing
   proj4string(res) <- crs(london.shape)
@@ -196,11 +189,33 @@ if(formula_id<=6){
   var.plot1=plot(var)
   var.plot2=plot(var, map=F)
   var.plot3=plot(var, wireframe=T)
-  png("variogram.png", width =10, height = 7, unit="in", res=600)
+  png("variogram_residuals.png", width =10, height = 7, unit="in", res=600)
   gridExtra::grid.arrange(var.plot1, var.plot2, var.plot3, ncol=2)
   dev.off()
   
-  print("# residual spatial patterns")
+  ## DATA
+  
+  # Create a SpatialPointsDataFrame in UTM coordinates
+  dat=validation$data[,c("easting","northing",paste0(pol,"_log"))]
+  coordinates(dat) <- ~easting+northing
+  proj4string(dat) <- crs(london.shape)
+  # Create STFDF objest (spatial, temporal and data components)
+  dat.SP <- SpatialPoints(unique(dat@coords),crs(london.shape))
+  dat.TM <- seq(from=as.POSIXct(strptime("2007-01-01", "%Y-%m-%d")), to=as.POSIXct(strptime("2011-12-31", "%Y-%m-%d")), by="day")
+  dat.DF <- data.frame(dat=dat@data[,paste0(pol,"_log")])
+  dat.STFDF <- STFDF(sp=dat.SP,time=dat.TM,data=dat.DF) #data with spatial index moving faster
+  # Variogram
+  var.dat <- gstat::variogramST(dat~1, data=dat.STFDF, assumeRegular=T)
+  # var <- variogramST(res~1, data=res.STFDF, width = 500, assumeRegular=T)
+  # var <- variogramST(res~1, data=res.STFDF, width = 1000, assumeRegular=T)
+  var.plot.res = plot(var, wireframe=T, main="Residuals")
+  var.plot.dat = plot(var.dat, wireframe=T,main="Data")
+  png("variogram_data_vs_residuals.png", width =10, height = 7, unit="in", res=600)
+  gridExtra::grid.arrange(var.plot.dat,var.plot.res, ncol=2)
+  dev.off()
+  
+  
+  print("Residual spatial patterns")
   
   spat_res = ggplot(validation$data[!is.na(validation$data$res.log),]) +
     geom_boxplot(aes(x=code,y=res.log, fill = site.type), outlier.size = .5) +
@@ -215,12 +230,14 @@ if(formula_id<=6){
   ######################################################
   
   print(names(mod$summary.random))
+  # Index for the temporal fields
   index.temp.field = which(substr(names(mod$summary.random),1,9) == "csi.field" & substr(names(mod$summary.random),1,15) != "csi.field.space" )
+  # Index for the spatial fields
   index.spat.field = which(substr(names(mod$summary.random),1,9) == "psi.field" | substr(names(mod$summary.random),1,15) == "csi.field.space")
   print(index.temp.field)
   print(index.spat.field)
   
-  print("# time-sitetype interaction")
+  print("Time-sitetype interaction")
   
   rur.mean <- ts(mod$summary.random$date.idx$mean[1:1826], start = c(2007, 1), frequency = 365)
   rur.mean.low <- ts(mod$summary.random$date.idx$`0.025quant`[1:1826], start = c(2007, 1), frequency = 365)
@@ -250,7 +267,8 @@ if(formula_id<=6){
   abline(h=0,col="blue")
   dev.off()
   
-  print("# latent temporal trend ")
+  
+  print("Latent temporal fields")
   
   for(i in index.temp.field){
     aqum.ts.mean <- ts(mod$summary.random[[i]]$mean, start = c(2007, 1), frequency = 365)
@@ -273,7 +291,7 @@ if(formula_id<=6){
   }
   
   
-  print("# latent spatial field")
+  print("Latent spatial fields")
   
   for(i in index.spat.field){
     
@@ -328,12 +346,11 @@ if(formula_id<=6){
   }
   
   ######################################################
-  print("#--- predictive capability  ---#")
+  print("#--- Predictive capability  ---#")
   ######################################################
   
   sample.size=50 
   n.pred=100
-  pred.perf = list()
   predictions= list()
   n.cores = 1 #detectCores() - 1
   
@@ -362,6 +379,7 @@ if(formula_id<=6){
   predictive.capability=apply(samples.fitted, MARGIN = 1, FUN=extract.predicted, variance=samples.var)
   
   predictive.capability = as.data.frame(t(predictive.capability))
+  # To aggregate the results we keep code, date and site type variables
   predictive.capability = cbind(code=valid$code, date.idx=valid$date.idx, site.type=valid$site.type, predictive.capability)
   
   predictive.capability$CRPS = crps_sample(y=samples.fitted[,(ncol(samples.fitted)-1)], dat=as.matrix(samples.fitted[,1:(ncol(samples.fitted)-1)]))
@@ -374,8 +392,11 @@ if(formula_id<=6){
   
   
   ######################################################
-  print("#--- extract daily predictions ---#")
+  print("#--- Extract daily predictions ---#")
   ######################################################
+  
+  # NOTE: daily predictions here are extracted for each model; 
+  #       this chunk can be skipped and run only for the best model after re-running it using all data
   
   n.samples = 50
   n.days = 1826
@@ -405,7 +426,7 @@ if(formula_id<=6){
   
   
   ###############################################################################
-  print("#---  compute monthly and annual means from daily prediction files ---#")
+  print("#---  Compute monthly and annual means from daily prediction files ---#")
   ###############################################################################
   
   setwd("predictions_by_day")
@@ -442,13 +463,13 @@ if(formula_id<=6){
   setwd("..")
   
   ###############################################################################
-  print("#---  plot monthly and annual means  ---#")
+  print("#---  Plot monthly and annual means  ---#")
   ###############################################################################
   
   monthly.mean = readRDS("pred_mean_monthly.rds")
-  annual.mean=readRDS("pred_mean_annual.rds")
+  annual.mean = readRDS("pred_mean_annual.rds")
   
-  ##--- reshape to long format
+  ##--- Reshape to long format
   
   annual.mean.long = melt(annual.mean, id.vars = c("easting","northing","sitetype"), variable.name = "year", value.name = pol)
   annual.mean.long$year = as.factor(substr(as.character(annual.mean.long$year),5,8))
@@ -462,8 +483,8 @@ if(formula_id<=6){
   annual.mean.long.plot = ggplot(annual.mean.long) +
     geom_raster(aes(x=easting,y=northing, fill = no2)) +
     facet_wrap("year",ncol=3) +
-    scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-    ggtitle(expression(paste("Average ",log(NO[2])," predictions by year"))) +
+    scale_fill_viridis(bquote(paste("log(",.(toupper(pol)),") (",mu,"g/",m^3,")"))) +
+    ggtitle(bquote(paste("Average log(",.(toupper(pol)),") predictions by year"))) +
     geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
     geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
     theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
@@ -473,12 +494,11 @@ if(formula_id<=6){
     labs(x="Easting",y="Northing")
   ggsave('annual.mean.png', plot=annual.mean.long.plot, width = 9, height = 6, unit="in", dpi=600)
   
-  
   monthly.mean.long.plot =  ggplot(monthly.mean.long) + 
     geom_raster(aes(x=easting,y=northing, fill = no2))+
     facet_wrap("yearmonth", ncol=12) +
-    scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
-    ggtitle(expression(paste("Average ",log(NO[2])," predictions by year and month"))) +
+    scale_fill_viridis(bquote(paste(.(toupper(pol))," (",mu,"g/",m^3,")"))) +
+    ggtitle(bquote(paste("Average ",.(toupper(pol))," predictions by year and month"))) +
     geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+
     geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
     theme(plot.title = element_text(family = "sans", color="#666666", size=14, hjust=0.5, face="bold"),
@@ -500,7 +520,7 @@ if(formula_id<=6){
   
   pred_2007_06_24 = readRDS("predictions_by_day/predictions_2007-06-24.rds")
   pred_2008_06_22 = readRDS("predictions_by_day/predictions_2008-06-22.rds")
-  pred_2009_06_21 = readRDS("predictions_by_day/predictions_2009-06-21.rds") #06/21
+  pred_2009_06_21 = readRDS("predictions_by_day/predictions_2009-06-21.rds") 
   pred_2010_06_20 = readRDS("predictions_by_day/predictions_2010-06-20.rds")
   
   pred_events = rbind(cbind(mean = rowMeans(pred_2007_12_11[,-c(1:3)], na.rm = T), day = "2007-12-11", pred.grid),
@@ -516,7 +536,7 @@ if(formula_id<=6){
          ggplot(pred_events) +
            geom_raster(aes(x=easting, y=northing, fill = mean))+
            facet_wrap(~day, ncol=4) +
-           scale_fill_viridis(expression(paste(log(NO[2])," (",mu,"g/",m^3,")"))) +
+           scale_fill_viridis(bquote(paste("log(",.(toupper(pol)),") (",mu,"g/",m^3,")"))) +
            ggtitle("Daily predictions on selected days with air pollution events (top row) or low concentration (bottom row)") +
            geom_path(data = fortify(london.shape), aes(group = group, x = long, y = lat), size=0.5)+
            geom_path(data = fortify(shape), aes(group = group, x = long, y = lat))+  
@@ -645,13 +665,13 @@ if(formula_id<=6){
   saveRDS(results, "results.rds")
   
   
-  ######################################################
-  print("#--- extract daily predictions ---#")
-  ######################################################
-  
-  coordinates.pred = pred.grid[,c("longitude","latitude")]
-  
-  pred.day = predict.spT(mod,newdata = pred.grid, newcoords = coordinates.pred[,c("longitude","latitude")])
+  # ######################################################
+  # print("#--- extract daily predictions ---#")
+  # ######################################################
+  # 
+  # coordinates.pred = pred.grid[,c("longitude","latitude")]
+  # 
+  # pred.day = predict.spT(mod,newdata = pred.grid, newcoords = coordinates.pred[,c("longitude","latitude")])
   
 }
 

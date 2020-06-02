@@ -8,4 +8,7 @@
 .tex
 .log
 .Rmd
+00_main.R
+01_models.R
+02_results.R
 03_comparison.R

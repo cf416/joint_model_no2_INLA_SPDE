@@ -69,40 +69,20 @@ parallel, and MODEL\_ID taking values 1 to 7 for the 7 competitor
 models.
 
 <!-- These can also be run manually setting `data_id` (1 to 6) and `formula_id` (1 to 9) once the data are loaded. -->
-### Notes on the notation
-
-Please see the paper for details on the model specification.
-
-The following are differences in the notation from the paper to the
-code:
-
--   *y*<sub>1</sub> is referred to as `pcm`
-
--   *y*<sub>2</sub> is referred to as `aqum`
-
--   *y*<sub>3</sub> is referred to as `y`
-
--   *z*<sub>1</sub> is referred to as `z1`, the copy for y as `z13`, the
-    copy for AQUM as `z12`
-
--   *z*<sub>2</sub> is referred to as `z2`, and the copy for y as `z23`
-
--   *z*<sub>3</sub> is referred to as `z3`
-
--   *λ*<sub>1, 2</sub> is automatically called `Beta for z12` and its
-    prior is called `lambda12`
-
--   *λ*<sub>1, 3</sub> is automatically called `Beta for z13` and its
-    prior is called `lambda13`
-
--   *λ*<sub>2, 3</sub> is automatically called `Beta for z23` and its
-    prior is called `lambda23`
-
--   The intercepts are `alpha1`, `alpha2` and `alpha3`
-
--   *β*<sub>*k*<sub>*s*</sub></sub> are `betaURB` and `betaRKS`
-    respectively
-
+<!-- ### Notes on the notation -->
+<!-- Please see the paper for details on the model specification. -->
+<!-- The following are differences in the notation from the paper to the code: -->
+<!-- * $y_1$ is referred to as `pcm` -->
+<!-- * $y_2$ is referred to as `aqum` -->
+<!-- * $y_3$ is referred to as `y` -->
+<!-- * $z_1$ is referred to as `z1`, the copy for y as `z13`, the copy for AQUM as `z12` -->
+<!-- * $z_2$ is referred to as `z2`, and the copy for y as `z23` -->
+<!-- * $z_3$ is referred to as `z3` -->
+<!-- * $\lambda_{1,2}$ is automatically called `Beta for z12` and its prior is called `lambda12`  -->
+<!-- * $\lambda_{1,3}$ is automatically called `Beta for z13` and its prior is called `lambda13` -->
+<!-- * $\lambda_{2,3}$ is automatically called `Beta for z23` and its prior is called `lambda23` -->
+<!-- * The intercepts are `alpha1`, `alpha2` and `alpha3` -->
+<!-- * $\beta_{k_s}$ are `betaURB` and `betaRKS` respectively -->
 <!---
 
 # Model specification

@@ -6,15 +6,15 @@ the paper *A Joint Bayesian Space-Time Model to Integrate Spatially
 Misaligned Air Pollution Data in R-INLA* (Forlani C., Bhatt S.,
 Cameletti M., Krainski E., Blangiardo M.), under review.
 
-We are trying to improve the predictions of NO**<sub>2</sub>
-concentration integrating data from two deterministic models called AQUM
-and PCM. The observations from the monitoring stations represent our
-response variable.
+The ArXiv preprint can be found at .
+
+We are trying to improve the predictions of NO2 concentration
+integrating data from two deterministic models called AQUM and PCM. The
+observations from the monitoring stations represent our response
+variable.
 
 We want to model these data jointly in order to take into account the
 uncertainty associated with the deterministic model outputs.
-
-The paper can be found at .
 
 ### Data
 
@@ -39,10 +39,8 @@ The workspace contains the following objects:
 -   `monitors_val`: list of the 6 sets of monitors used for validation
 -   `pred.grid`: locations where we want to make predictions and
     corresponding site type
--   `pred.grid.aqum`: values of AQUM interpolated at the prediction grid
-    nodes, for each day (not used for the joint model predictions)
--   `pred.grid.pcm`: values of PCM interpolated at the prediction grid
-    nodes, for each year (not used for the joint model predictions)
+    <!-- * `pred.grid.aqum`: values of AQUM interpolated at the prediction grid nodes, for each day (not used for the joint model predictions) -->
+    <!-- * `pred.grid.pcm`: values of PCM interpolated at the prediction grid nodes, for each year (not used for the joint model predictions) -->
 -   `roads_major`: shapefile of motorways over the study area
 
 Note that all coordinates are in UTM projection so that distances are
@@ -53,11 +51,22 @@ Please see the paper for data description.
 
 ### How to run the code
 
-To run the code you just need to run the script `code.R` which contains
-instructions for data praparation and sources all the other necessary
-scripts. The script should be ideally called from an array job passing
-DATA\_ID as a variable taking valueas 1 to 6, in order to run the model
-for the 6 validation sets in parallel.
+To run the joint model presented in section 3.2 and produce the plots of
+section 4.2 you just need to run the script `joint_model.R` which
+contains instructions for data praparation and sources all the other
+necessary scripts. The script should be ideally called from an array job
+passing DATA\_ID as a variable taking values 1 to 6, in order to run the
+model for the 6 validation sets in parallel.
+
+The script `separate_models.R` contains the code to run the models for
+AQUM and PCM described in section 3.1.
+
+The script `competitor_models.R` contains the code to run the models
+used for comparison described in section 3.3. This script should be
+ideally called from an array job passing DATA\_ID as a variable taking
+values 1 to 6, in order to run the model for the 6 validation sets in
+parallel, and MODEL\_ID taking values 1 to 7 for the 7 competitor
+models.
 
 <!-- These can also be run manually setting `data_id` (1 to 6) and `formula_id` (1 to 9) once the data are loaded. -->
 ### Notes on the notation

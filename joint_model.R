@@ -57,9 +57,7 @@ formula = y ~ -1 + alpha1 + alpha2 + alpha3 + betaURB + betaRKS +
               f(z13, copy='z1', fixed = FALSE, hyper=lambda13) + 
               f(z3, model='ar1', hyper=ar1.time.prior, replicate = sitetype.idx, constr=TRUE, rankdef = 1)
 
-#=================================================== 
-### Run models and extract results
-#===================================================
+
 ##--- NOTE: data_id indicates the validation set and is received from the bash script
 data_id <- ifelse(nchar(Sys.getenv("DATA_ID"))>0, as.numeric(Sys.getenv("DATA_ID")), 1) # 1 to 6
 

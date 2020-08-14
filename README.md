@@ -2,12 +2,12 @@ A Joint Bayesian Space-Time Model to Integrate Spatially Misaligned Air Pollutio
 ------------------------------------------------------------------------------------------------
 
 This repository contains the code to reproduce the results presented in
-the paper *A Joint Bayesian Space-Time Model to Integrate Spatially
-Misaligned Air Pollution Data in R-INLA* (Forlani C., Bhatt S.,
-Cameletti M., Krainski E., Blangiardo M.), under review.
+the paper Forlani C., Bhatt S., Cameletti M., Krainski E., Blangiardo
+M., *A Joint Bayesian Space-Time Model to Integrate Spatially Misaligned
+Air Pollution Data in R-INLA*, Environmetrics.
+2020;e2644.<DOI:https://doi.org/10.1002/env.2644>
 
-The ArXiv preprint can be found at <http://arxiv.org/abs/2006.08988>.
-
+<!-- The ArXiv preprint can be found at http://arxiv.org/abs/2006.08988. -->
 We are trying to improve the predictions of NO2 concentration
 integrating data from two deterministic models called AQUM and PCM. The
 observations from the monitoring stations represent our response
